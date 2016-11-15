@@ -1,0 +1,513 @@
+/**
+ * Key:sevedereardlyyouthadsita
+Password:ff7d992d3266b90ade0a840d4f14bc36b13eaaac 
+
+11:01:56 AM: {
+  "cloudantNoSQLDB": [
+    {
+      "credentials": {
+        "username": "da0d2812-066c-46d8-a456-f399214a765e-bluemix",
+        "password": "3d60b8524a19fc0e5166b02de479a1330c96fc6e619841ee63db38c39ee5a558",
+        "host": "da0d2812-066c-46d8-a456-f399214a765e-bluemix.cloudant.com",
+        "port": 443,
+        "url": "https://da0d2812-066c-46d8-a456-f399214a765e-bluemix:3d60b8524a19fc0e5166b02de479a1330c96fc6e619841ee63db38c39ee5a558@da0d2812-066c-46d8-a456-f399214a765e-bluemix.cloudant.com" (https://da0d2812-066c-46d8-a456-f399214a765e-bluemix:3d60b8524a19fc0e5166b02de479a1330c96fc6e619841ee63db38c39ee5a558@da0d2812-066c-46d8-a456-f399214a765e-bluemix.cloudant.com%27) 
+      },
+      "syslog_drain_url": null,
+      "label": "cloudantNoSQLDB",
+      "provider": null,
+      "plan": "Shared",
+      "name": "MyFirstDevApp-cloudantNoSQLDB",
+      "tags": [
+        "data_management",
+        "ibm_created",
+        "ibm_dedicated_public"
+      ]
+    }
+  ]
+}
+//dashbord
+/dashboard.html#login
+    
+//request s key na vyhledani konkretniho data
+https://da0d2812-066c-46d8-a456-f399214a765e-bluemix.cloudant.com/arduino_yun_db/_design/rooms/_view/byTimestamp?key=%222016-09-20%2018:56:53%22
+
+//stranka s popsanym get a post
+https://www.mkyong.com/java/how-to-send-http-request-getpost-in-java/
+
+//hlavicka pro http Request
+http://stackoverflow.com/questions/12732422/adding-header-for-httpurlconnection
+
+motion: 0/1
+room: 334/335
+timestamp: 
+
+ */
+import lotus.domino.*;
+import lotus.domino.axis.encoding.Base64;
+
+import java.util.*;
+import java.text.*;
+import java.io.*;
+import java.net.*;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+
+
+/**
+ * @author user
+ *
+ */
+public class JavaAgent extends AgentBase {
+	//db Connection
+	private View view;
+	private Database db;
+	private Session session;
+	private AgentContext agentContext;
+	
+	//rooms
+	private String[] mistnosti;	
+	private String room;
+	
+	//simple date format (import)
+	private SimpleDateFormat novyCas;
+	
+	//date data
+	public DateTime currentTime; //current time
+	private Date dateStartTime;
+	private Date dateEndTime;
+	private Date dateHledanyCas;
+	
+	//date String
+	private String strHledanyCas;	
+	private String currentRoom;
+	
+	//date double
+	private double doubleStartTime;
+	private double doubleEndTime;
+	private double doubleHledanyCas;
+	
+	//Main variable
+	private String majitelRezervace;
+	
+	//for an every hour should be booker 15minutes late
+	//...hour divided by four is 15
+	private static final int QUARTER = 4;
+	
+	/**
+	 * connects to DB and creates new view that include "ResByResource" value
+	 * another db view are not included
+	 */
+	public void NotesMain() {
+		try {
+			session = getSession();
+			agentContext = session.getAgentContext();
+			db = agentContext.getCurrentDatabase();
+			System.out.println(db.getTitle());
+		    view = db.getView("ResByResource");
+		    
+		    DocumentCollection dc = db.getAllDocuments();
+		    System.out.println("Database contains " + dc.getCount() + " documents.");
+			
+
+ 	    	novyCas = new SimpleDateFormat("d.M.yyyy HH:mm:ss");
+ 	    	strHledanyCas = session.createDateTime("26.10.2016 11:15").toString();
+ 	    	
+ 	    	//deletable data!!!
+		/*	strHledanyCas = session.createDateTime("26.10.2016 10:15").toString();*/
+			
+			//sets a current time
+			/*
+			currentTime = session.createDateTime("Today");
+		    currentTime.setNow();
+ 	    	*/
+			
+ 	    	novyCas = new SimpleDateFormat("d.M.yyyy HH:mm:ss"); 
+ 	    	dateHledanyCas = novyCas.parse(strHledanyCas);
+ 	    	doubleHledanyCas = dateHledanyCas.getTime();
+ 	    	
+ 	    	
+ 	    	
+ 	    	currentTime = session.createDateTime("Today");
+ 	    	currentTime.setNow();
+		    
+		    
+		   
+ 	    	
+ 	    	
+ 	    	this.rooms(0);
+ 	    	
+ 	    	//loop interates through array filled with rooms
+ 		     for(int i = 0; i < mistnosti.length; i++){
+ 		 	    currentRoom = rooms(i);
+ 	 	    	System.out.println(currentRoom);
+	  		    System.out.println("hledany cas: " + dateHledanyCas);
+ 	 	    	
+ 	 	    	Document doc = view.getFirstDocument();
+ 	 	      
+ 	 	    	while(view.getNextDocument(doc) != null)
+ 	 	    /*for(int j = 0; j < dc.getCount(); j++)*/{
+ 	 	    	  dateStartTime = null;
+		 	      dateEndTime = null;
+ 	 	 	      String MistnostAktualnihoDoc = doc.getItemValueString("ResourceName");
+ 	 	 	      
+ 	 	 	      //comparison of current room and a room from current document
+ 	 	    	  if(MistnostAktualnihoDoc.equals(currentRoom)){
+ 	 	    		
+
+ 	  				Item item = doc.getFirstItem("StartDateTime");
+ 	  	 	    	dateStartTime = novyCas.parse(item.getDateTimeValue().getLocalTime());
+ 	  	 	    	doubleStartTime = dateStartTime.getTime();
+ 	  	 	    	item = null;
+
+ 	 	    		
+ 	 	    		  //find out if there is any reservation before current time
+ 	 				     if(dateHledanyCas.getTime() >= dateStartTime.getTime()){
+ 	 				 	     
+ 	 				    	 //another variable value assignment
+ 	 	 	  				item = doc.getFirstItem("EndDateTime");
+ 	 	 	  		        dateEndTime =  novyCas.parse(item.getDateTimeValue().getLocalTime());
+ 	 	 	  		        doubleEndTime = dateEndTime.getTime();
+ 	 					   
+ 	 	 	  		        //compares if the reservation already ended or if it still running
+	 	 	 	  		   if(this.isReserved(doubleStartTime, doubleEndTime)){
+	 	 	 		    	 int delkaRezervace = (int)(doubleEndTime - doubleStartTime);
+	 	 	 		    	 int timeForCome = delkaRezervace / QUARTER;
+	 	 	 		    	 
+	 	 	 		    	 
+	 	 	 		    	 
+	 	 	 		    	 //compares if booker has still some time to come or not
+	 	 	 		    	 //if true, connect to the database and count if there is any movement
+	 	 	 		    	 if(timeForCome <= timeSinceRezBeggin()){
+	  	 	 	  		         majitelRezervace = doc.getItemValueString("ReservedBy");
+	 	 	 		    		 System.out.println(majitelRezervace);
+	 	 	 		    		 
+	 	 	 		    		 //sends an email that reservation was canceled
+	 	 	 		    		 //nr. 1 means that it is functional	 	 	 		    		 
+	 	 	 		    		 sendMail(0);
+	 	 	 		    		
+	 	 	 		    		 
+		 	 	 		    	Calendar call = new GregorianCalendar(TimeZone.getDefault(),Locale.getDefault());
+		 	 	 			    int year = call.get(Calendar.YEAR);  
+		 	 	 			    String sYear = ""+year;
+		 	 	 			    int month = call.get(Calendar.MONTH)+1;  
+		 	 	 			    String sMonth = ""+month;
+		 	 	 			    int day = call.get(Calendar.DAY_OF_MONTH);  
+		 	 	 			    String sDay = ""+day;
+		 	 	 			    int hour = call.get(Calendar.HOUR_OF_DAY); 
+		 	 	 			    String sHour = ""+hour;
+		 	 	 			    int minute = call.get(Calendar.MINUTE);
+		 	 	 			    int mod = minute % 5;
+		 	 	 			    minute -= mod;
+		 	 	 			    call.set(Calendar.MINUTE, minute);
+		 	 	 			    String sMinute = ""+minute;
+		 	 	 			    //int second = call.get(Calendar.SECOND); 
+		 	 	 			    //String sSecond = ""+second;
+		 	 	 	 	    	
+		 	 	 		    	if(month<=9){
+		 	 	 		    		sMonth = "0"+month; 
+		 	 	 		    	}	
+		 	 	 		    	if(day<=9){
+		 	 	 		    		sDay = "0"+day; 
+		 	 	 		    	}	
+		 	 	 		    	if(hour<=9){
+		 	 	 		    		sHour = "0"+hour; 
+		 	 	 		    	}	
+		 	 	 		    	if(minute<=9){
+		 	 	 		    		sMinute = "0"+minute; 
+		 	 	 		    	}	
+		 	 	 		    //	if(second<=9){
+		 	 	 		    //		sSecond = "0"+second; 
+		 	 	 		    // 	}	
+	 	 	 		    		
+
+	 	 	 		    		 
+	 	 	 		    		System.out.println("start time: " + dateStartTime);
+		 	 	 		    	System.out.println("end time: " + dateEndTime);
+		 	 	 		    	System.out.println("time for come (ms) : " + timeForCome);
+		 	 	 		    	System.out.println("time for come (m) : " + (timeForCome/1000)/60);
+	 	 	 		    		 
+
+			 	 	 		StringBuffer response = new StringBuffer();	 
+			 	 	 		StringBuffer finalBuffer = new StringBuffer();	
+	 	 	 		    	boolean everything = true;
+
+	 	 	 		    	
+	 	 	 		    	while(everything == true){
+		 	 	 		    int j = ((timeForCome/1000)/60);
+		 	 	 		    	if(isLongerThanHour(timeForCome)){
+				 	 	 		    int hourCount = (((timeForCome/1000)/60)/60);
+
+			 	 	 		    	if(j % 60 == 0){
+			 	 	 		    		j = 55;
+			 	 	 		    	}
+				 	 	 		    for(int k = 0; k<hourCount; k++){
+				 	 	 		    	for(int shift = j; shift>=0; shift = shift - 5){
+				 	 	 		    		Thread.sleep(500);
+				 	 	 		    		int l = hour + k;
+				 	 	 		    		String s = "byTimestamp";
+				 	 	 		    		//String s1 = "?key=\""+sYear+"-"+sMonth+"-"+sDay +"%"+ l+":"+j+":"+"00"+"\"";
+				 	 	 		    		String s2 = "?key=\"2016-09-20 2018:56:53\"";
+				 	 	 		    		String s3 = "?key=\"2016-09-20%20"+ l+":"+shift+":"+"00"+"\"";
+				 	 	 		    		 
+				 	 	 		    		 String url = "https://da0d2812-066c-46d8-a456-f399214a765e-bluemix.cloudant.com/arduino_yun_db/_design/rooms/_view/" + s +s3;
+
+				 	 	 		    		 URL obj = new URL(url);
+				 	 	 		    		 HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+
+				 	 	 		    		 // optional default is GET
+				 	 	 		    		 con.setRequestMethod("GET");
+
+				 	 	 		    		 //add request header
+				 	 	 		    		 String userCredentials = "da0d2812-066c-46d8-a456-f399214a765e-bluemix:3d60b8524a19fc0e5166b02de479a1330c96fc6e619841ee63db38c39ee5a558";
+				 	 	 		    		 String basicAuth = "Basic " + new String(new Base64().encode(userCredentials.getBytes()));
+				 	 	 		    		 con.setRequestProperty ("Authorization", basicAuth);
+				 	 	 		 			
+				 	 	 		 		
+				 	 	 		 		
+					 	 	 		 		//int responseCode = con.getResponseCode();
+					 	 	 		 		System.out.println("\nSending 'GET' request to URL : " + url);
+					 	 	 		 		//System.out.println("Response Code : " + responseCode);
+				
+					 	 	 		 		BufferedReader in = new BufferedReader(
+					 	 	 		 		new InputStreamReader(con.getInputStream()));
+					 	 	 		 		String inputLine;
+				
+					 	 	 		 		while ((inputLine = in.readLine()) != null) {
+					 	 	 		 			response.append(inputLine);
+					 	 	 		 		}
+					 	 	 		 		in.close();
+				
+					 	 	 		 		//print result
+					 	 	 		 		String finString = response.toString();
+					 	 	 		 		finalBuffer.append(finString);
+					 	 	 		 		
+				 	 	 		    	}
+				 	 	 		    }
+		 	 	 		    		
+
+			 		    			everything = false;	
+		 	 	 		    	}
+		 	 	 		    	else{
+				 	 	 		    for(int shift = j; shift>=0; shift = shift - 5){
+				 	 	 		    	Thread.sleep(1000);
+				 	 	 		    	String s = "byTimestamp";
+			 	 	 		    		//String s1 = "?key=\""+sYear+"-"+sMonth+"-"+sDay +"%"+ sHour+":"+j+":"+"00"+"\"";
+			 	 	 		    		String s2 = "?key=\"2016-09-20 2018:56:53\"";
+			 	 	 		    		String s3 = "?key=\"2016-09-20%20"+ "19"+":"+shift+":"+"00"+"\"";
+			 	 	 		    		 
+			 	 	 		    		 String url = "https://da0d2812-066c-46d8-a456-f399214a765e-bluemix.cloudant.com/arduino_yun_db/_design/rooms/_view/" + s+s3;
+
+			 	 	 		    		 URL obj = new URL(url);
+			 	 	 		    		 HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+
+			 	 	 		    		 // optional default is GET
+			 	 	 		    		 con.setRequestMethod("GET");
+
+			 	 	 		    		 //add request header
+			 	 	 		    		 String userCredentials = "da0d2812-066c-46d8-a456-f399214a765e-bluemix:3d60b8524a19fc0e5166b02de479a1330c96fc6e619841ee63db38c39ee5a558";
+			 	 	 		    		 String basicAuth = "Basic " + new String(new Base64().encode(userCredentials.getBytes()));
+			 	 	 		    		 con.setRequestProperty ("Authorization", basicAuth);
+			 	 	 		 			
+			 	 	 		 		
+			 	 	 		 		
+				 	 	 		 		//int responseCode = con.getResponseCode();
+				 	 	 		 		//System.out.println("\nSending 'GET' request to URL : " + url);
+				 	 	 		 		//System.out.println("Response Code : " + responseCode);
+			
+				 	 	 		 		BufferedReader in = new BufferedReader(
+				 	 	 		 		new InputStreamReader(con.getInputStream()));
+				 	 	 		 		String inputLine;
+			
+				 	 	 		 		while ((inputLine = in.readLine()) != null) {
+				 	 	 		 			response.append(inputLine);
+				 	 	 		 		}
+				 	 	 		 		in.close();
+			
+				 	 	 		 		//print result
+				 	 	 		 		String finString = response.toString();
+				 	 	 		 		finalBuffer.append(finString);
+			 	 	 		    	}
+			 	 	 		 		
+			 		    			everything = false;	
+		 	 	 		    	}
+		 		    			
+		 		    			
+
+		 	 	 		 		System.out.println(finalBuffer.toString());	
+	 	 	 		    		
+	 	 	 		    	}
+	 	 	 		    		
+	 	 	 		    	
+	 	 	 		    		
+	 	 	 		    		 
+			 	 	 		 	  
+		 	 	 		 		//through regular expressions count number of expressions in the string
+		 	 	 		 		  String REGEX = "\"value\":100";
+			 	 	 		      String INPUT = response.toString();
+		
+			 	 	 		   
+			 	 	 		      Pattern p = Pattern.compile(REGEX);
+			 	 	 		      Matcher m = p.matcher(INPUT);   // get a matcher object
+			 	 	 		      int count = 0;
+			 	 	 		      
+			 	 	 		      
+			 	 	 		      while(m.find()) {
+			 	 	 		         count++;
+			 	 	 		    //     System.out.println("Match number "+count);
+			 	 	 		    //     System.out.println("start(): "+m.start());
+			 	 	 		    //     System.out.println("end(): "+m.end());
+			 	 	 		      }
+	 	 	 		   	 
+	 	 	 		    		 
+	 	 	 		    		 dateStartTime = null;
+	 	 	  	 	    	     doubleStartTime = 0;
+	 	 			 	         dateEndTime = null;
+	 	 	  	 	    	     doubleEndTime = 0;
+	 	 			 	         
+	 	 			 	         
+	 	 	  	 	    	     
+	 	 	 		    		 break;
+	 	 	 		    	 }
+	 	 	 	  		   	
+	 	 	 		    	 //notification that there is still some time to come for booker
+	 	 	 		    	 else{
+	  	 	 	  		         majitelRezervace = doc.getItemValueString("ReservedBy");
+	 	 	 		    		 System.out.println("Jeste neubehl cas, dokdy muze " + majitelRezervace + " dorazit");
+	 	 	 		    		 doc = view.getNextDocument(doc);
+	 	 	 		    		 break;
+	 	 	 		    	 }
+	 	 	 		     }
+	 	 	 		     else{
+ 	 	 		    		 doc = view.getNextDocument(doc);
+	 	 	 		     }
+ 	 					    
+ 	 				     }
+ 	 				     else{
+ 	 				    	 doc = view.getNextDocument(doc);
+ 	 				     }
+ 	 	    	   }
+ 	 	    	  
+ 	 	    	  else{
+			    	 doc = view.getNextDocument(doc);
+ 	 	    	  }
+ 	 	    	  
+ 	 	    	     	 	    	  
+ 	 	          }
+ 		        
+			}
+		}
+		catch(Exception e) {
+		      e.printStackTrace();
+		    }
+	
+		
+	
+	
+	
+	}
+	/**
+	 * 
+	 * creates an array filled by rooms
+	 * @param poradi order of rooms in the array
+	 * @return mistnost returns room as a string
+	 */
+	private String rooms(int poradi){
+		mistnosti = new String[]{"444 including projector for 16/Praha", "488 including projector for 9/Praha"};
+		room = mistnosti[poradi];		
+		return room;
+	} 
+	
+	
+	/**
+	 * method count if current time is in the somewhere
+	 * of the middle of the reservation 
+	 * @param doubleStartTime
+	 * @param doubleEndTime
+	 * @return
+	 */
+	private boolean isReserved(double time_1, double time_2){
+		if(time_1 < doubleHledanyCas && time_2 > doubleHledanyCas){
+			return true;
+		}
+		else{
+			return false;
+		}
+	}
+	
+	private int timeSinceRezBeggin(){
+		return (int)(doubleHledanyCas - doubleStartTime);
+	}
+	
+
+	/**
+	 * get for room method
+	 * @return mistnost room that has the index
+	 */
+	public String getRooms(int poradi){
+		return this.rooms(poradi);
+	}
+	
+	/**
+	 * get for mineData method
+	 * @return strStartTime time when the reservation begin
+	 * 
+	 */
+	public Date getDateStartTime(){
+		return this.dateStartTime;
+	}
+	
+	/**
+	 * get for mine data method
+	 * @return strStartTime time when the reservation end
+	 * 
+	 */
+	public Date getDateEndTime(){
+		return this.dateEndTime;
+	}
+	
+	public boolean sendMail(int sendable){
+		try{
+			if(sendable == 1){
+				Document docMajitel = db.createDocument();
+		   		
+		   		Item majitel = docMajitel.replaceItemValue("majitel", null);
+		   		majitel.setValueString(majitelRezervace);
+		   		majitel.setSummary(true);
+		   		
+		   		Item idMajitel = docMajitel.replaceItemValue("idMajitel", null);
+		   		idMajitel.setValueInteger(300);
+		   		idMajitel.setSummary(true);
+		   		
+		
+		   		docMajitel.appendItemValue("Subject", "You have lost your room reservation!");
+		   		RichTextItem rti = docMajitel.createRichTextItem("Body");
+		   		rti.appendText("The reservation of " + currentRoom + " has been canceled.");
+		   		rti.appendText("Second paragraph");
+		   		
+		   		docMajitel.send("CN=Jakub Netrh/OU=Czech Republic/OU=Contr/O=IBM");
+		   		
+		   		//if (doc.save())
+		   	    //    System.out.println("Document has been saved");
+		   	    //else
+		   	    //    System.out.println("Unable to save document"); 
+		   		return true;
+			}
+		}
+
+		catch(Exception e) {
+		      e.printStackTrace();
+		    }
+		return false;
+	}
+	
+	public boolean isLongerThanHour(int time){
+		if(((time/1000)/60)/60 == 0){
+			return false;
+		}
+		return true;
+	}
+	
+
+}
