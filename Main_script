@@ -1,13 +1,13 @@
 /**
- * Key:sevedereardlyyouthadsita
-Password:ff7d992d3266b90ade0a840d4f14bc36b13eaaac 
+ * Key:{on demand}
+Password: {on demand}
 
 11:01:56 AM: {
   "cloudantNoSQLDB": [
     {
       "credentials": {
-        "username": "da0d2812-066c-46d8-a456-f399214a765e-bluemix",
-        "password": "3d60b8524a19fc0e5166b02de479a1330c96fc6e619841ee63db38c39ee5a558",
+        "username": {on demand},
+        "password": {on demand},
         "host": "da0d2812-066c-46d8-a456-f399214a765e-bluemix.cloudant.com",
         "port": 443,
         "url": "https://da0d2812-066c-46d8-a456-f399214a765e-bluemix:3d60b8524a19fc0e5166b02de479a1330c96fc6e619841ee63db38c39ee5a558@da0d2812-066c-46d8-a456-f399214a765e-bluemix.cloudant.com" (https://da0d2812-066c-46d8-a456-f399214a765e-bluemix:3d60b8524a19fc0e5166b02de479a1330c96fc6e619841ee63db38c39ee5a558@da0d2812-066c-46d8-a456-f399214a765e-bluemix.cloudant.com%27) 
