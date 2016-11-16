@@ -187,7 +187,8 @@ public class JavaAgent extends AgentBase {
 	 	 	 		    		 //nr. 1 means that it is functional	 	 	 		    		 
 	 	 	 		    		 sendMail(0);
 	 	 	 		    		
-	 	 	 		    		 
+	 	 	 		    		//creates a new calendar with the default date and time.
+	 	 	 		    		// values are than variables for sending request to database through API
 		 	 	 		    	Calendar call = new GregorianCalendar(TimeZone.getDefault(),Locale.getDefault());
 		 	 	 			    int year = call.get(Calendar.YEAR);  
 		 	 	 			    String sYear = ""+year;
@@ -205,6 +206,9 @@ public class JavaAgent extends AgentBase {
 		 	 	 			    //int second = call.get(Calendar.SECOND); 
 		 	 	 			    //String sSecond = ""+second;
 		 	 	 	 	    	
+		 	 	 			    
+		 	 	 			    //make sure that numbers less than 9 has format "01", "02", ... "09"
+		 	 	 			    //seconds are always "00"
 		 	 	 		    	if(month<=9){
 		 	 	 		    		sMonth = "0"+month; 
 		 	 	 		    	}	
@@ -228,26 +232,31 @@ public class JavaAgent extends AgentBase {
 		 	 	 		    	System.out.println("time for come (ms) : " + timeForCome);
 		 	 	 		    	System.out.println("time for come (m) : " + (timeForCome/1000)/60);
 	 	 	 		    		 
-
+		 	 	 		    //new stringbuffers to collect all requests together in a single string
 			 	 	 		StringBuffer response = new StringBuffer();	 
 			 	 	 		StringBuffer finalBuffer = new StringBuffer();	
-	 	 	 		    	boolean everything = true;
-
 	 	 	 		    	
+			 	 	 		//everything is false when the request were send succesfully
+			 	 	 		boolean everything = true;
 	 	 	 		    	while(everything == true){
 		 	 	 		    int j = ((timeForCome/1000)/60);
-		 	 	 		    	if(isLongerThanHour(timeForCome)){
+		 	 	 		    //code for reservation is not the same for reservation longer or shorter than one hour
+		 	 	 		    //
+		 	 	 		    if(isLongerThanHour(timeForCome)){
 				 	 	 		    int hourCount = (((timeForCome/1000)/60)/60);
-
+				 	 	 		    //if reservation starts at 00, reconfigure value to 55 so it can dwindle
 			 	 	 		    	if(j % 60 == 0){
 			 	 	 		    		j = 55;
 			 	 	 		    	}
 				 	 	 		    for(int k = 0; k<hourCount; k++){
 				 	 	 		    	for(int shift = j; shift>=0; shift = shift - 5){
-				 	 	 		    		Thread.sleep(500);
+				 	 	 		    		
+				 	 	 		    		//to slow down request sending to server
+				 	 	 		    		Thread.sleep(1500);
+				 	 	 		    		
 				 	 	 		    		int l = hour + k;
 				 	 	 		    		String s = "byTimestamp";
-				 	 	 		    		//String s1 = "?key=\""+sYear+"-"+sMonth+"-"+sDay +"%"+ l+":"+j+":"+"00"+"\"";
+				 	 	 		    		//String s1 = "?key=\""+sYear+"-"+sMonth+"-"+sDay +"%20"+ l+":"+shift+":"+"00"+"\"";
 				 	 	 		    		String s2 = "?key=\"2016-09-20 2018:56:53\"";
 				 	 	 		    		String s3 = "?key=\"2016-09-20%20"+ l+":"+shift+":"+"00"+"\"";
 				 	 	 		    		 
@@ -260,6 +269,7 @@ public class JavaAgent extends AgentBase {
 				 	 	 		    		 con.setRequestMethod("GET");
 
 				 	 	 		    		 //add request header
+				 	 	 		    		 //name:password
 				 	 	 		    		 String userCredentials = "da0d2812-066c-46d8-a456-f399214a765e-bluemix:3d60b8524a19fc0e5166b02de479a1330c96fc6e619841ee63db38c39ee5a558";
 				 	 	 		    		 String basicAuth = "Basic " + new String(new Base64().encode(userCredentials.getBytes()));
 				 	 	 		    		 con.setRequestProperty ("Authorization", basicAuth);
@@ -291,9 +301,11 @@ public class JavaAgent extends AgentBase {
 		 	 	 		    	}
 		 	 	 		    	else{
 				 	 	 		    for(int shift = j; shift>=0; shift = shift - 5){
-				 	 	 		    	Thread.sleep(1000);
+				 	 	 		    	//to slow down request sending to server
+				 	 	 		    	Thread.sleep(1500);
+				 	 	 		    	
 				 	 	 		    	String s = "byTimestamp";
-			 	 	 		    		//String s1 = "?key=\""+sYear+"-"+sMonth+"-"+sDay +"%"+ sHour+":"+j+":"+"00"+"\"";
+			 	 	 		    		//String s1 = "?key=\""+sYear+"-"+sMonth+"-"+sDay +"%20"+ sHour+":"+shift+":"+"00"+"\"";
 			 	 	 		    		String s2 = "?key=\"2016-09-20 2018:56:53\"";
 			 	 	 		    		String s3 = "?key=\"2016-09-20%20"+ "19"+":"+shift+":"+"00"+"\"";
 			 	 	 		    		 
@@ -467,6 +479,11 @@ public class JavaAgent extends AgentBase {
 		return this.dateEndTime;
 	}
 	
+	/**
+	 * Creates document and sends an email to the booker that the reservation was deleted
+	 * @param sendable when 1, it runs through, when 0 the method is empty
+	 * @return boolean true wen the mail was send, false when it was not send
+	 */
 	public boolean sendMail(int sendable){
 		try{
 			if(sendable == 1){
@@ -502,6 +519,11 @@ public class JavaAgent extends AgentBase {
 		return false;
 	}
 	
+	/**
+	 * receive time in ms and decide if the "timeForCome" is longer or shorter than one hour
+	 * @param time in ms
+	 * @return boolean true if it is longer or false when it is not longer than hour
+	 */
 	public boolean isLongerThanHour(int time){
 		if(((time/1000)/60)/60 == 0){
 			return false;
