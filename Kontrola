@@ -1,0 +1,44 @@
+import lotus.domino.*;
+
+public class JavaAgent extends AgentBase {
+	//db Connection
+	private Database db;
+	private Session session;
+	private AgentContext agentContext;
+
+    public void NotesMain() {
+
+      try {
+    	  session = getSession();
+			agentContext = session.getAgentContext();
+			db = agentContext.getCurrentDatabase();
+			System.out.println(db.getTitle());
+		    
+		    DocumentCollection dc = db.getAllDocuments();
+		    Document doc = dc.getLastDocument();
+		    
+		    int i = 0;
+		    
+		    while(dc.getPrevDocument(doc) != null){
+		    	i++;
+	    		System.out.print(i);
+		    	String s1 = doc.getItemValueString("majitel");
+		    	
+		    	if(s1.equals(null)){
+		    		doc = dc.getPrevDocument(doc);
+		    	}
+		    	else{
+		    		System.out.println(s1);
+		    		Document docToDel = doc;
+		    		doc = dc.getPrevDocument(doc);
+		    		docToDel.removePermanently(true);
+		    	}
+		    }
+
+          // (Your code goes here)
+
+      } catch(Exception e) {
+          e.printStackTrace();
+       }
+   }
+}
