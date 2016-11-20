@@ -272,7 +272,7 @@ public class JavaAgent extends AgentBase {
 
 				 	 	 		    		 //add request header
 				 	 	 		    		 //name:password
-				 	 	 		    		 String userCredentials = "da0d2812-066c-46d8-a456-f399214a765e-bluemix:3d60b8524a19fc0e5166b02de479a1330c96fc6e619841ee63db38c39ee5a558";
+				 	 	 		    		 String userCredentials = "onDemand";
 				 	 	 		    		 String basicAuth = "Basic " + new String(new Base64().encode(userCredentials.getBytes()));
 				 	 	 		    		 con.setRequestProperty ("Authorization", basicAuth);
 				 	 	 		 			
@@ -320,7 +320,7 @@ public class JavaAgent extends AgentBase {
 			 	 	 		    		 con.setRequestMethod("GET");
 
 			 	 	 		    		 //add request header
-			 	 	 		    		 String userCredentials = "da0d2812-066c-46d8-a456-f399214a765e-bluemix:3d60b8524a19fc0e5166b02de479a1330c96fc6e619841ee63db38c39ee5a558";
+			 	 	 		    		 String userCredentials = "onDemand";
 			 	 	 		    		 String basicAuth = "Basic " + new String(new Base64().encode(userCredentials.getBytes()));
 			 	 	 		    		 con.setRequestProperty ("Authorization", basicAuth);
 			 	 	 		 			
