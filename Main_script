@@ -88,12 +88,17 @@ public class JavaAgent extends AgentBase {
 	private double doubleEndTime;
 	private double doubleHledanyCas;
 	
+	//other variable
+	private int movementAmount;
+	private Calendar call;
+	
 	//Main variable
 	private String majitelRezervace;
 	
 	//for an every hour should be booker 15minutes late
 	//...hour divided by four is 15
 	private static final int QUARTER = 4;
+	private static final int MOVEMENT_DEFLECTION = 30;
 	
 	/**
 	 * connects to DB and creates new view that include "ResByResource" value
@@ -107,8 +112,8 @@ public class JavaAgent extends AgentBase {
 			System.out.println(db.getTitle());
 		    view = db.getView("ResByResource");
 		    
-		    DocumentCollection dc = db.getAllDocuments();
-		    System.out.println("Database contains " + dc.getCount() + " documents.");
+		   // DocumentCollection dc = db.getAllDocuments();
+		    //System.out.println("Database contains " + dc.getCount() + " documents.");
 			
 
  	    	novyCas = new SimpleDateFormat("d.M.yyyy HH:mm:ss");
@@ -122,6 +127,45 @@ public class JavaAgent extends AgentBase {
 			currentTime = session.createDateTime("Today");
 		    currentTime.setNow();
  	    	*/
+ 	    	
+ 	    	
+ 	    	//creates a new calendar with the default date and time.
+	    		// values are than variables for sending request to database through API
+		    	call = new GregorianCalendar(TimeZone.getDefault(),Locale.getDefault());
+			    int year = call.get(Calendar.YEAR);  
+			    String sYear = ""+year;
+			    int month = call.get(Calendar.MONTH)+1;  
+			    String sMonth = ""+month;
+			    int day = call.get(Calendar.DAY_OF_MONTH);  
+			    String sDay = ""+day;
+			    int hour = call.get(Calendar.HOUR_OF_DAY); 
+			    String sHour = ""+hour;
+			    int minute = call.get(Calendar.MINUTE);
+			    int mod = minute % 5;
+			    minute -= mod;
+			    call.set(Calendar.MINUTE, minute);
+			    String sMinute = ""+minute;
+			    //int second = call.get(Calendar.SECOND); 
+			    //String sSecond = ""+second;
+	 	    	
+			    
+			    //make sure that numbers less than 9 has format "01", "02", ... "09"
+			    //seconds are always "00"
+		    	if(month<=9){
+		    		sMonth = "0"+month; 
+		    	}	
+		    	if(day<=9){
+		    		sDay = "0"+day; 
+		    	}	
+		    	if(hour<=9){
+		    		sHour = "0"+hour; 
+		    	}	
+		    	if(minute<=9){
+		    		sMinute = "0"+minute; 
+		    	}	
+		    //	if(second<=9){
+		    //		sSecond = "0"+second; 
+		    // 	}
 			
  	    	novyCas = new SimpleDateFormat("d.M.yyyy HH:mm:ss"); 
  	    	dateHledanyCas = novyCas.parse(strHledanyCas);
@@ -146,8 +190,7 @@ public class JavaAgent extends AgentBase {
  	 	    	
  	 	    	Document doc = view.getFirstDocument();
  	 	      
- 	 	    	while(view.getNextDocument(doc) != null)
- 	 	    /*for(int j = 0; j < dc.getCount(); j++)*/{
+ 	 	    	while(view.getNextDocument(doc) != null){
  	 	    	  dateStartTime = null;
 		 	      dateEndTime = null;
  	 	 	      String MistnostAktualnihoDoc = doc.getItemValueString("ResourceName");
@@ -183,54 +226,13 @@ public class JavaAgent extends AgentBase {
 	  	 	 	  		         majitelRezervace = doc.getItemValueString("ReservedBy");
 	 	 	 		    		 System.out.println(majitelRezervace);
 	 	 	 		    		 
-	 	 	 		    		 //sends an email that reservation was canceled
-	 	 	 		    		 //nr. 1 means that it is functional	 	 	 		    		 
-	 	 	 		    		 sendMail(0);
+	 	 	 		    		 
 	 	 	 		    		
-	 	 	 		    		//creates a new calendar with the default date and time.
-	 	 	 		    		// values are than variables for sending request to database through API
-		 	 	 		    	Calendar call = new GregorianCalendar(TimeZone.getDefault(),Locale.getDefault());
-		 	 	 			    int year = call.get(Calendar.YEAR);  
-		 	 	 			    String sYear = ""+year;
-		 	 	 			    int month = call.get(Calendar.MONTH)+1;  
-		 	 	 			    String sMonth = ""+month;
-		 	 	 			    int day = call.get(Calendar.DAY_OF_MONTH);  
-		 	 	 			    String sDay = ""+day;
-		 	 	 			    int hour = call.get(Calendar.HOUR_OF_DAY); 
-		 	 	 			    String sHour = ""+hour;
-		 	 	 			    int minute = call.get(Calendar.MINUTE);
-		 	 	 			    int mod = minute % 5;
-		 	 	 			    minute -= mod;
-		 	 	 			    call.set(Calendar.MINUTE, minute);
-		 	 	 			    String sMinute = ""+minute;
-		 	 	 			    //int second = call.get(Calendar.SECOND); 
-		 	 	 			    //String sSecond = ""+second;
-		 	 	 	 	    	
-		 	 	 			    
-		 	 	 			    //make sure that numbers less than 9 has format "01", "02", ... "09"
-		 	 	 			    //seconds are always "00"
-		 	 	 		    	if(month<=9){
-		 	 	 		    		sMonth = "0"+month; 
-		 	 	 		    	}	
-		 	 	 		    	if(day<=9){
-		 	 	 		    		sDay = "0"+day; 
-		 	 	 		    	}	
-		 	 	 		    	if(hour<=9){
-		 	 	 		    		sHour = "0"+hour; 
-		 	 	 		    	}	
-		 	 	 		    	if(minute<=9){
-		 	 	 		    		sMinute = "0"+minute; 
-		 	 	 		    	}	
-		 	 	 		    //	if(second<=9){
-		 	 	 		    //		sSecond = "0"+second; 
-		 	 	 		    // 	}	
+	 	 	 		    			
 	 	 	 		    		
 
 	 	 	 		    		 
-	 	 	 		    		System.out.println("start time: " + dateStartTime);
-		 	 	 		    	System.out.println("end time: " + dateEndTime);
-		 	 	 		    	System.out.println("time for come (ms) : " + timeForCome);
-		 	 	 		    	System.out.println("time for come (m) : " + (timeForCome/1000)/60);
+	 	 	 		    		
 	 	 	 		    		 
 		 	 	 		    //new stringbuffers to collect all requests together in a single string
 			 	 	 		StringBuffer response = new StringBuffer();	 
@@ -252,12 +254,12 @@ public class JavaAgent extends AgentBase {
 				 	 	 		    	for(int shift = j; shift>=0; shift = shift - 5){
 				 	 	 		    		
 				 	 	 		    		//to slow down request sending to server
-				 	 	 		    		Thread.sleep(1500);
+				 	 	 		    		Thread.sleep(1000);
 				 	 	 		    		
 				 	 	 		    		int l = hour + k;
 				 	 	 		    		String s = "byTimestamp";
 				 	 	 		    		//String s1 = "?key=\""+sYear+"-"+sMonth+"-"+sDay +"%20"+ l+":"+shift+":"+"00"+"\"";
-				 	 	 		    		String s2 = "?key=\"2016-09-20 2018:56:53\"";
+				 	 	 		    		String s2 = "?key=\"2016-09-20%2018:56:53\"";
 				 	 	 		    		String s3 = "?key=\"2016-09-20%20"+ l+":"+shift+":"+"00"+"\"";
 				 	 	 		    		 
 				 	 	 		    		 String url = "https://da0d2812-066c-46d8-a456-f399214a765e-bluemix.cloudant.com/arduino_yun_db/_design/rooms/_view/" + s +s3;
@@ -277,7 +279,7 @@ public class JavaAgent extends AgentBase {
 				 	 	 		 		
 				 	 	 		 		
 					 	 	 		 		//int responseCode = con.getResponseCode();
-					 	 	 		 		System.out.println("\nSending 'GET' request to URL : " + url);
+					 	 	 		 		//System.out.println("\nSending 'GET' request to URL : " + url);
 					 	 	 		 		//System.out.println("Response Code : " + responseCode);
 				
 					 	 	 		 		BufferedReader in = new BufferedReader(
@@ -302,7 +304,7 @@ public class JavaAgent extends AgentBase {
 		 	 	 		    	else{
 				 	 	 		    for(int shift = j; shift>=0; shift = shift - 5){
 				 	 	 		    	//to slow down request sending to server
-				 	 	 		    	Thread.sleep(1500);
+				 	 	 		    	Thread.sleep(1000);
 				 	 	 		    	
 				 	 	 		    	String s = "byTimestamp";
 			 	 	 		    		//String s1 = "?key=\""+sYear+"-"+sMonth+"-"+sDay +"%20"+ sHour+":"+shift+":"+"00"+"\"";
@@ -347,7 +349,7 @@ public class JavaAgent extends AgentBase {
 		 		    			
 		 		    			
 
-		 	 	 		 		System.out.println(finalBuffer.toString());	
+		 	 	 		 		//System.out.println(finalBuffer.toString());	
 	 	 	 		    		
 	 	 	 		    	}
 	 	 	 		    		
@@ -357,13 +359,11 @@ public class JavaAgent extends AgentBase {
 			 	 	 		 	  
 		 	 	 		 		//through regular expressions count number of expressions in the string
 		 	 	 		 		  String REGEX = "\"value\":100";
-			 	 	 		      String INPUT = response.toString();
-		
+			 	 	 		      String INPUT = response.toString();	
 			 	 	 		   
 			 	 	 		      Pattern p = Pattern.compile(REGEX);
 			 	 	 		      Matcher m = p.matcher(INPUT);   // get a matcher object
-			 	 	 		      int count = 0;
-			 	 	 		      
+			 	 	 		      int count = 0;		 	 	 		      
 			 	 	 		      
 			 	 	 		      while(m.find()) {
 			 	 	 		         count++;
@@ -372,17 +372,39 @@ public class JavaAgent extends AgentBase {
 			 	 	 		    //     System.out.println("end(): "+m.end());
 			 	 	 		      }
 	 	 	 		   	 
+	 	 	 		    		 movementAmount = count;
+	 	 	 		    		 count = 0;
 	 	 	 		    		 
-	 	 	 		    		 dateStartTime = null;
+	 	 	 		    		 System.out.println(movementAmount);
+			 	 	 		      
+	 	 	 		    		 
+	 	 			 	         
+	 	 			 	         
+
+		 	 	 		    	 //send mail and unbook reservation
+		 	 	 		    	 if(movementAmount < MOVEMENT_DEFLECTION){
+		 	 	 		    		 
+		 	 	 		    		 //sends an email that reservation was canceled 	 		    		 
+		 	 	 		    		 sendMail(0);
+		 	 	 		    		 //doc.removePermanently(true);
+		 	 	 		    		 
+		 	 	 		    		 rememberCanceledRes(majitelRezervace, doubleStartTime, doubleEndTime, currentRoom);
+		 	 	 		    	 }
+		 	 	 		    	 
+		 	 	 		    	 else{
+		 	 	 		    		 rememberSuccessfulRes(majitelRezervace, currentRoom);
+		 	 	 		    	 }
+		 	 	 		    	 
+		 	 	 		    	 dateStartTime = null;
 	 	 	  	 	    	     doubleStartTime = 0;
 	 	 			 	         dateEndTime = null;
 	 	 	  	 	    	     doubleEndTime = 0;
-	 	 			 	         
-	 	 			 	         
-	 	 	  	 	    	     
 	 	 	 		    		 break;
 	 	 	 		    	 }
 	 	 	 	  		   	
+	 	 	 		    	 
+	 	 	 		    	 
+	 	 	 		    	 
 	 	 	 		    	 //notification that there is still some time to come for booker
 	 	 	 		    	 else{
 	  	 	 	  		         majitelRezervace = doc.getItemValueString("ReservedBy");
@@ -531,5 +553,82 @@ public class JavaAgent extends AgentBase {
 		return true;
 	}
 	
+	/**
+	 * creates and save NotesDocument to the database
+	 * document is created when some reservation was canceled to inform someone
+	 * else that the room has been booked 
+	 * @param prevOwner person whose reservation was canceled
+	 * @param timeStart startTime of the canceled reservation
+	 * @param timeEnd endTime of the canceled reservation
+	 * @param room room of the canceled reservation
+	 * @return true or false if the doc was created successfully
+	 */
+	public boolean rememberCanceledRes(String prevOwner, double timeStart, double timeEnd, String room){
+		try{
+			Document docCanceledRes = db.createDocument();
+	   		
+	   		Item majitel = docCanceledRes.replaceItemValue("majitel", null);
+	   		majitel.setValueString(prevOwner);
+	   		majitel.setSummary(true);
+	   		
+	   		Item itemTimeStart = docCanceledRes.replaceItemValue("timeStart", null);
+	   		itemTimeStart.setValueDouble(timeStart);
+	   		itemTimeStart.setSummary(true);
+	   		
+	   		Item itemTimeEnd = docCanceledRes.replaceItemValue("timeEnd", null);
+	   		itemTimeEnd.setValueDouble(timeEnd);
+	   		itemTimeEnd.setSummary(true);
 
+	   		Item itemRoom = docCanceledRes.replaceItemValue("room", null);
+	   		itemRoom.setValueString(room);
+	   		itemRoom.setSummary(true);
+	   		
+	   		//TTL - time to live. Every iteration should this number decrease. If it is 0, doc is deleted
+	   		Item itemTTL = docCanceledRes.replaceItemValue("TTL", null);
+	   		itemTTL.setValueInteger(10);
+	   		itemTTL.setSummary(true);
+	   		
+			return docCanceledRes.save();
+		}
+		
+		catch(Exception e) {
+		      e.printStackTrace();
+		    }
+		return false;
+	}
+
+	/**
+	 * creates and save a NotesDocument to the database
+	 * document is created when someone successfully used his book to reduce
+	 * sending requests to the database
+	 * @param Owner booker
+	 * @param room room of the reservation
+	 * @return true or false if the document was saved successfully
+	 */
+	public boolean rememberSuccessfulRes(String Owner, String room){
+		try{
+			Document docSuccessfulRes = db.createDocument();
+	   		
+	   		Item majitel = docSuccessfulRes.replaceItemValue("majitel", null);
+	   		majitel.setValueString(Owner);
+	   		majitel.setSummary(true);
+
+	   		Item itemRoom = docSuccessfulRes.replaceItemValue("room", null);
+	   		itemRoom.setValueString(room);
+	   		itemRoom.setSummary(true);
+
+	   		//TTL - time to live. Every iteration should this number decrease. If it is 0, doc is deleted
+	   		Item itemTTL = docSuccessfulRes.replaceItemValue("TTL", null);
+	   		itemTTL.setValueInteger(10);
+	   		itemTTL.setSummary(true);
+	   			   		
+			return docSuccessfulRes.save();
+		}
+		
+		catch(Exception e) {
+		      e.printStackTrace();
+		    }
+		return false;
+	}
+	
 }
