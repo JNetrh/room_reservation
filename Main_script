@@ -65,6 +65,8 @@ public class JavaAgent extends AgentBase {
 	private Database db;
 	private Session session;
 	private AgentContext agentContext;
+	private DocumentCollection dc;
+	private DocumentCollection auxDc; //auxiliary dc (cz - pomocna)
 	
 	//rooms
 	private String[] mistnosti;	
@@ -92,6 +94,13 @@ public class JavaAgent extends AgentBase {
 	private int movementAmount;
 	private Calendar call;
 	
+	//document variables
+	private Document doc;
+	
+	//document items variables
+	private String docId;
+	private String arrayId[][];
+	
 	//Main variable
 	private String majitelRezervace;
 	
@@ -106,13 +115,50 @@ public class JavaAgent extends AgentBase {
 	 */
 	public void NotesMain() {
 		try {
+
 			session = getSession();
 			agentContext = session.getAgentContext();
 			db = agentContext.getCurrentDatabase();
 			System.out.println(db.getTitle());
 		    view = db.getView("ResByResource");
+		    dc = db.getAllDocuments();
+			
 		    
-		   // DocumentCollection dc = db.getAllDocuments();
+
+			
+	    	
+	    	
+
+			doc = dc.getLastDocument();
+			int Ai1 = 0; 
+			int Ai2 = 0;
+			while(dc.getPrevDocument(doc) != null){
+				System.out.println(doc);
+	    		String s1 = "";
+	    		String s2 = "";
+		    	s1 = doc.getItemValueString("majitel");
+		    	s2 = doc.getItemValueString("uniqueId");
+		    	
+		    	if(s1.equals("")){
+			    	if(dc.getPrevDocument(doc) == null)
+			    		break;
+			    	else
+			    		break;
+		    	}
+		    	else{
+
+		    		arrayId[1][Ai1] = s1;
+		    		arrayId[2][Ai1] = s2;
+		    		Ai1++;
+		    		Ai2++;
+					System.out.println(s1 + "        " + s2);
+					System.out.println(arrayId.length+"kkkkkkkkkk");
+					break;
+		    	}
+			}
+			System.out.println(arrayId.length);
+		    
+		    // DocumentCollection dc = db.getAllDocuments();
 		    //System.out.println("Database contains " + dc.getCount() + " documents.");
 			
 
@@ -187,8 +233,9 @@ public class JavaAgent extends AgentBase {
  		 	    currentRoom = rooms(i);
  	 	    	System.out.println(currentRoom);
 	  		    System.out.println("hledany cas: " + dateHledanyCas);
- 	 	    	
- 	 	    	Document doc = view.getFirstDocument();
+
+			    doc = null;
+ 	 	    	doc = view.getFirstDocument();
  	 	      
  	 	    	while(view.getNextDocument(doc) != null){
  	 	    	  dateStartTime = null;
@@ -225,6 +272,9 @@ public class JavaAgent extends AgentBase {
 	 	 	 		    	 if(timeForCome <= timeSinceRezBeggin()){
 	  	 	 	  		         majitelRezervace = doc.getItemValueString("ReservedBy");
 	 	 	 		    		 System.out.println(majitelRezervace);
+	 	 	 			    	 docId = "";
+	 	 	 			    	 docId = doc.getUniversalID();
+	 	 	 		    		 System.out.println(docId);
 	 	 	 		    		 
 	 	 	 		    		 
 	 	 	 		    		
@@ -272,7 +322,7 @@ public class JavaAgent extends AgentBase {
 
 				 	 	 		    		 //add request header
 				 	 	 		    		 //name:password
-				 	 	 		    		 String userCredentials = "onDemand";
+				 	 	 		    		 String userCredentials = "on demand";
 				 	 	 		    		 String basicAuth = "Basic " + new String(new Base64().encode(userCredentials.getBytes()));
 				 	 	 		    		 con.setRequestProperty ("Authorization", basicAuth);
 				 	 	 		 			
@@ -320,7 +370,7 @@ public class JavaAgent extends AgentBase {
 			 	 	 		    		 con.setRequestMethod("GET");
 
 			 	 	 		    		 //add request header
-			 	 	 		    		 String userCredentials = "onDemand";
+			 	 	 		    		 String userCredentials = "on demand";
 			 	 	 		    		 String basicAuth = "Basic " + new String(new Base64().encode(userCredentials.getBytes()));
 			 	 	 		    		 con.setRequestProperty ("Authorization", basicAuth);
 			 	 	 		 			
@@ -388,11 +438,11 @@ public class JavaAgent extends AgentBase {
 		 	 	 		    		 sendMail(0);
 		 	 	 		    		 //doc.removePermanently(true);
 		 	 	 		    		 
-		 	 	 		    		 rememberCanceledRes(majitelRezervace, doubleStartTime, doubleEndTime, currentRoom);
+		 	 	 		    		 rememberCanceledRes(majitelRezervace, doubleStartTime, doubleEndTime, currentRoom, docId);
 		 	 	 		    	 }
 		 	 	 		    	 
 		 	 	 		    	 else{
-		 	 	 		    		 rememberSuccessfulRes(majitelRezervace, currentRoom);
+		 	 	 		    		 rememberSuccessfulRes(majitelRezervace, currentRoom, docId);
 		 	 	 		    	 }
 		 	 	 		    	 
 		 	 	 		    	 dateStartTime = null;
@@ -441,6 +491,9 @@ public class JavaAgent extends AgentBase {
 	
 	
 	}
+	
+	
+	
 	/**
 	 * 
 	 * creates an array filled by rooms
@@ -563,7 +616,7 @@ public class JavaAgent extends AgentBase {
 	 * @param room room of the canceled reservation
 	 * @return true or false if the doc was created successfully
 	 */
-	public boolean rememberCanceledRes(String prevOwner, double timeStart, double timeEnd, String room){
+	public boolean rememberCanceledRes(String prevOwner, double timeStart, double timeEnd, String room, String docId){
 		try{
 			Document docCanceledRes = db.createDocument();
 	   		
@@ -582,6 +635,10 @@ public class JavaAgent extends AgentBase {
 	   		Item itemRoom = docCanceledRes.replaceItemValue("room", null);
 	   		itemRoom.setValueString(room);
 	   		itemRoom.setSummary(true);
+	   		
+	   		Item itemId = docCanceledRes.replaceItemValue("uniqueId", null);
+	   		itemId.setValueString(docId);
+	   		itemId.setSummary(true);
 	   		
 	   		//TTL - time to live. Every iteration should this number decrease. If it is 0, doc is deleted
 	   		Item itemTTL = docCanceledRes.replaceItemValue("TTL", null);
@@ -605,7 +662,7 @@ public class JavaAgent extends AgentBase {
 	 * @param room room of the reservation
 	 * @return true or false if the document was saved successfully
 	 */
-	public boolean rememberSuccessfulRes(String Owner, String room){
+	public boolean rememberSuccessfulRes(String Owner, String room, String docId){
 		try{
 			Document docSuccessfulRes = db.createDocument();
 	   		
@@ -616,6 +673,10 @@ public class JavaAgent extends AgentBase {
 	   		Item itemRoom = docSuccessfulRes.replaceItemValue("room", null);
 	   		itemRoom.setValueString(room);
 	   		itemRoom.setSummary(true);
+	   		
+	   		Item itemId = docSuccessfulRes.replaceItemValue("uniqueId", null);
+	   		itemId.setValueString(docId);
+	   		itemId.setSummary(true);
 
 	   		//TTL - time to live. Every iteration should this number decrease. If it is 0, doc is deleted
 	   		Item itemTTL = docSuccessfulRes.replaceItemValue("TTL", null);
@@ -623,6 +684,35 @@ public class JavaAgent extends AgentBase {
 	   		itemTTL.setSummary(true);
 	   			   		
 			return docSuccessfulRes.save();
+		}
+		
+		catch(Exception e) {
+		      e.printStackTrace();
+		    }
+		return false;
+	}
+	
+	public boolean FindRememberedDocs(){
+		try{
+			int g = 0;
+		    dc = db.getAllDocuments();
+			Document dcDoc = dc.getLastDocument();
+			while(dc.getPrevDocument(dcDoc) != null){
+		    	g++;
+	    		String s1 = "";
+	    		String s2 = "";
+		    	s1 = dcDoc.getItemValueString("majitel");
+		    	s2 = dcDoc.getItemValueString("uniqueId");
+		    	if(s1.equals("") == false ){
+		    		auxDc.addDocument(dcDoc);
+		    		dcDoc = dc.getPrevDocument(dcDoc);
+		    	}
+		    	else{
+		    		dcDoc = dc.getPrevDocument(dcDoc);
+		    	}
+			}
+	    	System.out.println(auxDc.getCount());
+	    	System.out.println(g);
 		}
 		
 		catch(Exception e) {
