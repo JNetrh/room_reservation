@@ -9,7 +9,7 @@ public class JavaAgent extends AgentBase {
     public void NotesMain() {
 
       try {
-    	  session = getSession();
+    	  	session = getSession();
 			agentContext = session.getAgentContext();
 			db = agentContext.getCurrentDatabase();
 			System.out.println(db.getTitle());
@@ -21,21 +21,33 @@ public class JavaAgent extends AgentBase {
 		    
 		    while(dc.getPrevDocument(doc) != null){
 		    	i++;
-	    		System.out.print(i);
-		    	String s1 = doc.getItemValueString("majitel");
+	    		String s1 = "";
+	    		String s2 = "";
+		    	s1 = doc.getItemValueString("majitel");
+		    	s2 = doc.getItemValueString("uniqueId");
 		    	
-		    	if(s1.equals(null)){
+		    	if(s1.equals("")){
+		    		System.out.println(i + "nesmazan");
 		    		doc = dc.getPrevDocument(doc);
 		    	}
 		    	else{
-		    		System.out.println(s1);
-		    		Document docToDel = doc;
-		    		doc = dc.getPrevDocument(doc);
-		    		docToDel.removePermanently(true);
+		    		if(s2.equals("ADD5B37F10E51D30C125801A00461568") || s2.equals("D18E6BCAD863E030C1257F020053E58A") ){
+		    			System.out.println(s1 + "smazan");
+			    		System.out.println(s2);
+			    		Document docToDel = doc;
+			    		doc = dc.getPrevDocument(doc);
+			    		//docToDel.removePermanently(true);
+		    		}
+		    		else{
+
+			    		System.out.println(i + "SMAZANnesmazan");
+			    		doc = dc.getPrevDocument(doc);
+		    		}
+		    		
+		    		
 		    	}
 		    }
 
-          // (Your code goes here)
 
       } catch(Exception e) {
           e.printStackTrace();
