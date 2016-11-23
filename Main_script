@@ -66,7 +66,7 @@ public class JavaAgent extends AgentBase {
 	private Session session;
 	private AgentContext agentContext;
 	private DocumentCollection dc;
-	private DocumentCollection auxDc; //auxiliary dc (cz - pomocna)
+	private DocumentCollection auxDc; //auxiliary document collection (cz - pomocna)
 	
 	//rooms
 	private String[] mistnosti;	
@@ -108,6 +108,7 @@ public class JavaAgent extends AgentBase {
 	//...hour divided by four is 15
 	private static final int QUARTER = 4;
 	private static final int MOVEMENT_DEFLECTION = 30;
+	private static final double YOU_SHOULD_COME = 600000; //10 minutes in ms
 	
 	/**
 	 * connects to DB and creates new view that include "ResByResource" value
@@ -146,7 +147,7 @@ public class JavaAgent extends AgentBase {
 			    		break;
 		    	}
 		    	else{
-
+		    		auxDc.addDocument(doc);
 		    		arrayId[1][Ai1] = s1;
 		    		arrayId[2][Ai1] = s2;
 		    		Ai1++;
@@ -250,7 +251,57 @@ public class JavaAgent extends AgentBase {
  	  	 	    	dateStartTime = novyCas.parse(item.getDateTimeValue().getLocalTime());
  	  	 	    	doubleStartTime = dateStartTime.getTime();
  	  	 	    	item = null;
-
+ 	  	 	    	
+ 	  	 	    	//sends email to booker that soon will be his reservation canceled
+ 	  	 	    	//if(doubleStartTime - dateHledanyCas.getTime() <= YOU_SHOULD_COME &&  doubleStartTime - dateHledanyCas.getTime() > 0){
+ 	  	 	    	//	majitelRezervace = doc.getItemValueString("ReservedBy");
+ 	  	 	    		//youShouldComeMail(0, majitelRezervace);
+ 	  	 	    	//	majitelRezervace = null;
+ 	  	 	    	//}
+ 	  	 	    	
+ 	  	 	    	
+ 	  	 	    	Document auxDoc = auxDc.getFirstDocument();
+ 	  	 	    	while(auxDc.getNextDocument(doc) != null){
+	  	 	    		double auxTimeEnd = auxDoc.getItemValueDouble("timeEnd");
+ 	  	 	    		
+	  	 	    		//deletes all old docs that are not actual
+	  	 	    		if(auxTimeEnd < dateHledanyCas.getTime()){
+	  	 	    				Document auxDelDoc = auxDoc;
+	  	 	    				auxDoc = auxDc.getNextDocument(auxDoc);
+	  	 	    				//auxDelDoc.removePermanently(true);
+	  	 	    				auxDelDoc = null;
+ 	  	 	    		}
+ 	  	 	    		
+ 	  	 	    		//figure out if someone else book this room again during the time the other`s person should be present but his reservation was canceled 
+	  	 	    		//sends warning mail about this reality to the new booker
+	  	 	    		//removes this document from
+ 	  	 	    		if(auxDoc.getItemValueString("type").equals("del") && auxDoc.getItemValueString("room").equals("currentRoom")){
+ 	  	 	    			if((auxTimeEnd - doubleStartTime) > 0){
+ 	  	 	    				majitelRezervace = doc.getItemValueString("ReservedBy");
+ 	  	 	    				
+ 	  	 	    				//sending email to "majitelRezervace" 	 
+ 	  	 	    				//warningMail("majitelRezervace");
+ 	  	 	    				majitelRezervace = null;
+ 	  	 	    				Document auxDelDoc = auxDoc;
+ 	  	 	    				auxDoc = auxDc.getNextDocument(auxDoc);
+ 	  	 	    				//auxDelDoc.removePermanently(true);
+	  	 	    				auxDelDoc = null;
+ 	  	 	    			}
+ 	 	  	 	    		else{
+ 	 	  	 	    			auxDoc = auxDc.getNextDocument(auxDoc);
+ 	 	  	 	    		}
+ 	  	 	    		}
+ 	  	 	    		
+ 	  	 	    		else{
+ 	  	 	    			auxDoc = auxDc.getNextDocument(auxDoc);
+ 	  	 	    		}
+ 	  	 	    	}
+ 	  	 	    	
+ 	  	 	    	
+ 	  	 	    	
+ 	  	 	    	
+ 	  	 	    	
+ 	  	 	    	
  	 	    		
  	 	    		  //find out if there is any reservation before current time
  	 				     if(dateHledanyCas.getTime() >= dateStartTime.getTime()){
@@ -322,7 +373,7 @@ public class JavaAgent extends AgentBase {
 
 				 	 	 		    		 //add request header
 				 	 	 		    		 //name:password
-				 	 	 		    		 String userCredentials = "on demand";
+				 	 	 		    		 String userCredentials = "onDemand";
 				 	 	 		    		 String basicAuth = "Basic " + new String(new Base64().encode(userCredentials.getBytes()));
 				 	 	 		    		 con.setRequestProperty ("Authorization", basicAuth);
 				 	 	 		 			
@@ -370,7 +421,7 @@ public class JavaAgent extends AgentBase {
 			 	 	 		    		 con.setRequestMethod("GET");
 
 			 	 	 		    		 //add request header
-			 	 	 		    		 String userCredentials = "on demand";
+			 	 	 		    		 String userCredentials = "onDemand";
 			 	 	 		    		 String basicAuth = "Basic " + new String(new Base64().encode(userCredentials.getBytes()));
 			 	 	 		    		 con.setRequestProperty ("Authorization", basicAuth);
 			 	 	 		 			
@@ -435,7 +486,7 @@ public class JavaAgent extends AgentBase {
 		 	 	 		    	 if(movementAmount < MOVEMENT_DEFLECTION){
 		 	 	 		    		 
 		 	 	 		    		 //sends an email that reservation was canceled 	 		    		 
-		 	 	 		    		 sendMail(0);
+		 	 	 		    		 sendMail(0, majitelRezervace);
 		 	 	 		    		 //doc.removePermanently(true);
 		 	 	 		    		 
 		 	 	 		    		 rememberCanceledRes(majitelRezervace, doubleStartTime, doubleEndTime, currentRoom, docId);
@@ -458,7 +509,7 @@ public class JavaAgent extends AgentBase {
 	 	 	 		    	 //notification that there is still some time to come for booker
 	 	 	 		    	 else{
 	  	 	 	  		         majitelRezervace = doc.getItemValueString("ReservedBy");
-	 	 	 		    		 System.out.println("Jeste neubehl cas, dokdy muze " + majitelRezervace + " dorazit");
+	 	 	 		    		 //System.out.println("Jeste neubehl cas, dokdy muze " + majitelRezervace + " dorazit");
 	 	 	 		    		 doc = view.getNextDocument(doc);
 	 	 	 		    		 break;
 	 	 	 		    	 }
@@ -559,7 +610,7 @@ public class JavaAgent extends AgentBase {
 	 * @param sendable when 1, it runs through, when 0 the method is empty
 	 * @return boolean true wen the mail was send, false when it was not send
 	 */
-	public boolean sendMail(int sendable){
+	public boolean sendMail(int sendable, String majitelRezervace){
 		try{
 			if(sendable == 1){
 				Document docMajitel = db.createDocument();
@@ -587,12 +638,81 @@ public class JavaAgent extends AgentBase {
 		   		return true;
 			}
 		}
+		catch(Exception e) {
+		      e.printStackTrace();
+		    }
+		return true;
+	}
+	
+	public boolean warningMail(int sendable, String majitelRezervace){
+		try{
+			if(sendable == 1){
+				Document docMajitel = db.createDocument();
+		   		
+		   		Item majitel = docMajitel.replaceItemValue("majitel", null);
+		   		majitel.setValueString(majitelRezervace);
+		   		majitel.setSummary(true);
+		   		
+		   		Item idMajitel = docMajitel.replaceItemValue("idMajitel", null);
+		   		idMajitel.setValueInteger(300);
+		   		idMajitel.setSummary(true);
+		   		
+		
+		   		docMajitel.appendItemValue("Subject", "Someone Else");
+		   		RichTextItem rti = docMajitel.createRichTextItem("Body");
+		   		rti.appendText("Please note!\n Someone else booked this room: " + currentRoom + " before you. \n But I have Canceled It.");
+		   		rti.appendText("Second paragraph");
+		   		
+		   		docMajitel.send(majitelRezervace);
+		   		
+		   		//if (doc.save())
+		   	    //    System.out.println("Document has been saved");
+		   	    //else
+		   	    //    System.out.println("Unable to save document"); 
+		   		return true;
+			}
+		}
 
 		catch(Exception e) {
 		      e.printStackTrace();
 		    }
-		return false;
+		return true;
 	}
+	
+	
+	public boolean youShouldComeMail(int sendable, String majitelRezervace){
+		try{
+		if(sendable == 1){
+			Document docMajitel = db.createDocument();
+	   		
+	   		Item majitel = docMajitel.replaceItemValue("majitel", null);
+	   		majitel.setValueString(majitelRezervace);
+	   		majitel.setSummary(true);
+	   		
+	   		Item idMajitel = docMajitel.replaceItemValue("idMajitel", null);
+	   		idMajitel.setValueInteger(300);
+	   		idMajitel.setSummary(true);
+	   		
+	
+	   		docMajitel.appendItemValue("Subject", "you should come");
+	   		RichTextItem rti = docMajitel.createRichTextItem("Body");
+	   		rti.appendText("Please note!\n you shoul come to room: " + currentRoom + ".\n It will be soon canceled");
+	   		rti.appendText("Second paragraph");
+	   		
+	   		docMajitel.send(majitelRezervace);
+	   		
+	   		//if (doc.save())
+	   	    //    System.out.println("Document has been saved");
+	   	    //else
+	   	    //    System.out.println("Unable to save document"); 
+	   		return true;
+		}
+	}
+
+	catch(Exception e) {
+	      e.printStackTrace();
+	    }
+	return true;}
 	
 	/**
 	 * receive time in ms and decide if the "timeForCome" is longer or shorter than one hour
@@ -620,7 +740,11 @@ public class JavaAgent extends AgentBase {
 		try{
 			Document docCanceledRes = db.createDocument();
 	   		
-	   		Item majitel = docCanceledRes.replaceItemValue("majitel", null);
+			Item type = docCanceledRes.replaceItemValue("type", null);
+	   		type.setValueString("del");
+	   		type.setSummary(true);
+			
+			Item majitel = docCanceledRes.replaceItemValue("majitel", null);
 	   		majitel.setValueString(prevOwner);
 	   		majitel.setSummary(true);
 	   		
@@ -665,6 +789,10 @@ public class JavaAgent extends AgentBase {
 	public boolean rememberSuccessfulRes(String Owner, String room, String docId){
 		try{
 			Document docSuccessfulRes = db.createDocument();
+
+			Item type = docSuccessfulRes.replaceItemValue("type", null);
+	   		type.setValueString("ok");
+	   		type.setSummary(true);
 	   		
 	   		Item majitel = docSuccessfulRes.replaceItemValue("majitel", null);
 	   		majitel.setValueString(Owner);
