@@ -64,7 +64,6 @@ public class JavaAgent extends AgentBase {
     private View view;
     private Database db;
     private Session session;
-    private DocumentCollection dc;
     
     //Current Db Connection
     private Database curDb;
@@ -111,7 +110,7 @@ public class JavaAgent extends AgentBase {
     //...hour divided by four is 15
     private static final int QUARTER = 4;
     private static final int MOVEMENT_DEFLECTION = 30;
-    private static final double YOU_SHOULD_COME = 600000; //10 minutes in ms
+  //  private static final double YOU_SHOULD_COME = 600000; //10 minutes in ms
     private static final double FIFTEEN_HOURS = 54000000;
     
     /**
@@ -127,7 +126,6 @@ public class JavaAgent extends AgentBase {
             //db = agentContext.getCurrentDatabase();
             System.out.println(db.getTitle());
             view = db.getView("ResByResource");
-            dc = db.getAllDocuments();
             //System.out.println(dc.getCount());
             
             //current db connection 
@@ -139,19 +137,6 @@ public class JavaAgent extends AgentBase {
             //System.out.println(curDc.getCount());
             System.out.println("Database contains " + curDc.getCount() + " documents.");
             
-
-            novyCas = new SimpleDateFormat("d.M.yyyy HH:mm:ss");
-            //strHledanyCas = session.createDateTime("26.10.2016 11:15").toString();
-
-            strHledanyCas = session.createDateTime("19.10.2016 07:00").toString();
-            //deletable data!!!
-            /*  strHledanyCas = session.createDateTime("26.10.2016 10:15").toString();*/
-            
-            //sets a current time
-            /*
-            currentTime = session.createDateTime("Today");
-            currentTime.setNow();
-            */
             
             
             //creates a new calendar with the default date and time.
@@ -192,17 +177,26 @@ public class JavaAgent extends AgentBase {
             //      sSecond = "0"+second; 
             //  }
             
+                
+
+
+                novyCas = new SimpleDateFormat("d.M.yyyy HH:mm:ss");
+                //strHledanyCas = session.createDateTime("26.10.2016 11:15").toString();
+
+                strHledanyCas = session.createDateTime("26.11.2016 22:08").toString();
+                //deletable data!!!
+                /*  strHledanyCas = session.createDateTime("26.10.2016 10:15").toString();*/
+                
+                //sets a current time
             novyCas = new SimpleDateFormat("d.M.yyyy HH:mm:ss"); 
             dateHledanyCas = novyCas.parse(strHledanyCas);
-            doubleHledanyCas = dateHledanyCas.getTime();
+            System.out.println("porovnat:  " + dateHledanyCas);
             
-            
-            currentTime = session.createDateTime("Today");
-            currentTime.setNow();
-            
-
-            System.out.println(doubleHledanyCas);
-            System.out.println(currentTime+"/n");
+            strHledanyCas = session.createDateTime(sDay + "." + sMonth + "." + sYear + " " + sHour + ":" + sMinute).toString();
+            dateHledanyCas = novyCas.parse(strHledanyCas);
+            System.out.println("porovnat:  " + dateHledanyCas);
+            doubleHledanyCas = dateHledanyCas.getTime(); 
+           
            
             
             
@@ -317,13 +311,14 @@ public class JavaAgent extends AgentBase {
                                                                         //to slow down request sending to server
                                                                         Thread.sleep(500);
                                                                         
-                                                                        int l = hour + k;
+                                                                        int varHour = hour + k;
                                                                         String s = "byTimestamp";
                                                                         //String s1 = "?key=\""+sYear+"-"+sMonth+"-"+sDay +"%20"+ l+":"+shift+":"+"00"+"\"";
-                                                                        String s2 = "?key=\"2016-09-20%2018:56:53\"";
-                                                                        String s3 = "?key=\"2016-09-20%20"+ l+":"+shift+":"+"00"+"\"";
+                                                                      //  String s2 = "?key=\"2016-09-20%2018:56:53\"";
+                                                                      //  String s3 = "?key=\"2016-09-20%20"+ varHour+":"+shift+":"+"00"+"\"";
+                                                                        String s4 = "?key=\""+sYear+"."+sMonth+"."+sDay+"%20"+ varHour+":"+shift+":"+"00"+"\"";
                                                                          
-                                                                         String url = "https://da0d2812-066c-46d8-a456-f399214a765e-bluemix.cloudant.com/arduino_yun_db/_design/rooms/_view/" + s +s3;
+                                                                         String url = "https://da0d2812-066c-46d8-a456-f399214a765e-bluemix.cloudant.com/arduino_yun_db/_design/rooms/_view/" + s +s4;
                             
                                                                          URL obj = new URL(url);
                                                                          HttpURLConnection con = (HttpURLConnection) obj.openConnection();
@@ -365,10 +360,11 @@ public class JavaAgent extends AgentBase {
                                                         
                                                         String s = "byTimestamp";
                                                         //String s1 = "?key=\""+sYear+"-"+sMonth+"-"+sDay +"%20"+ sHour+":"+shift+":"+"00"+"\"";
-                                                        String s2 = "?key=\"2016-09-20 2018:56:53\"";
-                                                        String s3 = "?key=\"2016-09-20%20"+ "19"+":"+shift+":"+"00"+"\"";
+                                                        //String s2 = "?key=\"2016-09-20 2018:56:53\"";
+                                                        //String s3 = "?key=\"2016-09-20%20"+ "19"+":"+shift+":"+"00"+"\"";
+                                                        String s4 = "?key=\""+sYear+"."+sMonth+"."+sDay+"%20"+ sHour+":"+shift+":"+"00"+"\"";
                                                          
-                                                         String url = "https://da0d2812-066c-46d8-a456-f399214a765e-bluemix.cloudant.com/arduino_yun_db/_design/rooms/_view/" + s+s3;
+                                                         String url = "https://da0d2812-066c-46d8-a456-f399214a765e-bluemix.cloudant.com/arduino_yun_db/_design/rooms/_view/" + s+s4;
                 
                                                          URL obj = new URL(url);
                                                          HttpURLConnection con = (HttpURLConnection) obj.openConnection();
@@ -771,7 +767,7 @@ public class JavaAgent extends AgentBase {
                                  //sending email to "majitelRezervace"   
                                  warningMail(0, majitel);
                                  Document auxDelDoc = auxDoc;
-                                 //auxDelDoc.removePermanently(true);
+                                 auxDelDoc.removePermanently(true);
                                  auxDelDoc = null;
                                  System.out.println("Smazany Dokument_2");
                               }
@@ -808,7 +804,7 @@ public class JavaAgent extends AgentBase {
                       //deletes all old docs that are not actual
                       if(auxTimeEnd < dateHledanyCas.getTime()){
                          Document auxDelDoc = auxDoc;
-                         //auxDelDoc.removePermanently(true);
+                         auxDelDoc.removePermanently(true);
                          auxDelDoc = null;
                                                     
                         // System.out.println(auxDoc.getItemValueString("majitel"));
