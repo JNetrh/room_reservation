@@ -10,7 +10,8 @@ Password: {on demand}
         "password": {on demand},
         "host": "da0d2812-066c-46d8-a456-f399214a765e-bluemix.cloudant.com",
         "port": 443,
-        "url": "https://da0d2812-066c-46d8-a456-f399214a765e-bluemix:3d60b8524a19fc0e5166b02de479a1330c96fc6e619841ee63db38c39ee5a558@da0d2812-066c-46d8-a456-f399214a765e-bluemix.cloudant.com" (https://da0d2812-066c-46d8-a456-f399214a765e-bluemix:3d60b8524a19fc0e5166b02de479a1330c96fc6e619841ee63db38c39ee5a558@da0d2812-066c-46d8-a456-f399214a765e-bluemix.cloudant.com%27) 
+        "url": "https://da0d2812-066c-46d8-a456-f399214a765e-bluemix:3d60b8524a19fc0e5166b02de479a1330c96fc6e619841ee63db38c39ee5a558@da0d2812-066c-46d8-a456-f399214a765e-bluemix.cloudant.c
+        om" (https://da0d2812-066c-46d8-a456-f399214a765e-bluemix:3d60b8524a19fc0e5166b02de479a1330c96fc6e619841ee63db38c39ee5a558@da0d2812-066c-46d8-a456-f399214a765e-bluemix.cloudant.com%27) 
       },
       "syslog_drain_url": null,
       "label": "cloudantNoSQLDB",
@@ -110,7 +111,7 @@ public class JavaAgent extends AgentBase {
     //...hour divided by four is 15
     private static final int QUARTER = 4;
     private static final int MOVEMENT_DEFLECTION = 30;
-  //  private static final double YOU_SHOULD_COME = 600000; //10 minutes in ms
+    private static final int YOU_SHOULD_COME = 600000; //10 minutes in ms
     private static final double FIFTEEN_HOURS = 54000000;
     
     /**
@@ -182,19 +183,15 @@ public class JavaAgent extends AgentBase {
 
                 novyCas = new SimpleDateFormat("d.M.yyyy HH:mm:ss");
                 //strHledanyCas = session.createDateTime("26.10.2016 11:15").toString();
-
-                strHledanyCas = session.createDateTime("26.11.2016 22:08").toString();
-                //deletable data!!!
-                /*  strHledanyCas = session.createDateTime("26.10.2016 10:15").toString();*/
-                
-                //sets a current time
+                //strHledanyCas = session.createDateTime("26.11.2016 22:08").toString();
+                //strHledanyCas = session.createDateTime("26.10.2016 11:00").toString();
+                strHledanyCas = session.createDateTime(sDay + "." + sMonth + "." + sYear + " " + sHour + ":" + sMinute).toString();
+            
+            //set a current time
             novyCas = new SimpleDateFormat("d.M.yyyy HH:mm:ss"); 
             dateHledanyCas = novyCas.parse(strHledanyCas);
-            System.out.println("porovnat:  " + dateHledanyCas);
-            
-            strHledanyCas = session.createDateTime(sDay + "." + sMonth + "." + sYear + " " + sHour + ":" + sMinute).toString();
-            dateHledanyCas = novyCas.parse(strHledanyCas);
-            System.out.println("porovnat:  " + dateHledanyCas);
+            //System.out.println("porovnat:  " + dateHledanyCas);
+            System.out.println("hledany cas:  " + dateHledanyCas);
             doubleHledanyCas = dateHledanyCas.getTime(); 
            
            
@@ -234,13 +231,7 @@ public class JavaAgent extends AgentBase {
                              dateStartTime = novyCas.parse(item.getDateTimeValue().getLocalTime());
                              doubleStartTime = dateStartTime.getTime();
                              item = null;
-                                
-                                //sends email to booker that soon will be his reservation canceled
-                                //if(doubleStartTime - dateHledanyCas.getTime() <= YOU_SHOULD_COME &&  doubleStartTime - dateHledanyCas.getTime() > 0){
-                                //  majitelRezervace = doc.getItemValueString("ReservedBy");
-                                    //youShouldComeMail(0, majitelRezervace);
-                                //  majitelRezervace = null;
-                                //}
+                              
                             
                             if(dateHledanyCas.getTime() < dateStartTime.getTime() && (dateStartTime.getTime()-dateHledanyCas.getTime()) < FIFTEEN_HOURS){
                                 item = doc.getFirstItem("EndDateTime");
@@ -248,10 +239,10 @@ public class JavaAgent extends AgentBase {
                                 doubleEndTime = dateEndTime.getTime();
                                 majitelRezervace = doc.getItemValueString("ReservedBy"); 
                                 
-                                
+                                warningMail(1, majitelRezervace);
                                 wasThereRes(doubleStartTime, currentRoom, majitelRezervace);
                                 
-                                System.out.println("My doc ends after actual doc beggins in this room");
+                                
                             }    
                              
                                 
@@ -271,17 +262,20 @@ public class JavaAgent extends AgentBase {
                                 
                                  //compares if the reservation already ended or if it still running
                                  if(this.isReserved(doubleStartTime, doubleEndTime)){
+                                         majitelRezervace = doc.getItemValueString("ReservedBy");
+                                                 
                                          int delkaRezervace = (int)(doubleEndTime - doubleStartTime);
                                          int timeForCome = delkaRezervace / QUARTER;
                                          
             
-                                        
+                                     if (isPresentWarning(delkaRezervace, timeSinceRezBeggin(), timeForCome, sYear, sMonth, sDay, sHour)){
+                                    	 youShouldComeMail(1, majitelRezervace);
+                                     }    
                                         
                                          
                                          //compares if booker has still some time to come or not
                                          //if true, connect to the database and count if there is any movement
                                      if(timeForCome <= timeSinceRezBeggin()){
-                                                 majitelRezervace = doc.getItemValueString("ReservedBy");
                                                  System.out.println(majitelRezervace);
                                                  docId = "";
                                                  docId = doc.getUniversalID();
@@ -356,7 +350,7 @@ public class JavaAgent extends AgentBase {
                                               else{
                                                     for(int shift = j; shift>=0; shift = shift - 5){
                                                         //to slow down request sending to server
-                                                        Thread.sleep(1000);
+                                                        Thread.sleep(600);
                                                         
                                                         String s = "byTimestamp";
                                                         //String s1 = "?key=\""+sYear+"-"+sMonth+"-"+sDay +"%20"+ sHour+":"+shift+":"+"00"+"\"";
@@ -400,7 +394,8 @@ public class JavaAgent extends AgentBase {
                                                   //System.out.println(finalBuffer.toString());   
                                              
                                                   //through regular expressions count number of expressions in the string
-                                                  String REGEX = "\"value\":100";
+                                                  //String REGEX = "\"value\":100";
+                                                  String REGEX = "\"motion\":1";
                                                   String INPUT = response.toString();   
                                                
                                                   Pattern p = Pattern.compile(REGEX);
@@ -427,8 +422,9 @@ public class JavaAgent extends AgentBase {
                                                 if(movementAmount < MOVEMENT_DEFLECTION){
                                                      
                                                      //sends an email that reservation was canceled                          
-                                                     sendMail(0, majitelRezervace);
-                                                     //doc.removePermanently(true);
+                                                     sendMail(1, majitelRezervace);
+                                                     Document delDoc = doc;
+                                                     delDoc.removePermanently(true);
                                                      
                                                      rememberCanceledRes(majitelRezervace, doubleStartTime, doubleEndTime, currentRoom, docId);
                                                 }
@@ -493,6 +489,9 @@ public class JavaAgent extends AgentBase {
         }
     }
     
+    /**
+     * @return time since the reservation beggin from now.
+     */
     private int timeSinceRezBeggin(){
         return (int)(doubleHledanyCas - doubleStartTime);
     }
@@ -548,7 +547,7 @@ public class JavaAgent extends AgentBase {
                 rti.appendText("The reservation of " + currentRoom + " has been canceled.");
                 rti.appendText("Second paragraph");
                 
-                docMajitel.send("CN=Jakub Netrh/OU=Czech Republic/OU=Contr/O=IBM");
+                docMajitel.send(majitelRezervace);
                 
                 //if (doc.save())
                 //    System.out.println("Document has been saved");
@@ -563,6 +562,10 @@ public class JavaAgent extends AgentBase {
         return true;
     }
     
+    /**
+     * sends email to someone who reserved a room that has been unreserved by this program
+     * but only in case that the second person should come during the first reservation
+     */
     public boolean warningMail(int sendable, String majitelRezervace){
         try{
             if(sendable == 1){
@@ -598,7 +601,10 @@ public class JavaAgent extends AgentBase {
         return true;
     }
     
-    
+    /**
+     * sends email to person who should have come to the reserved room
+     * it informs about unbook in case of no movement
+     */
     public boolean youShouldComeMail(int sendable, String majitelRezervace){
       try{
             if(sendable == 1){
@@ -613,10 +619,10 @@ public class JavaAgent extends AgentBase {
                 idMajitel.setSummary(true);
                 
         
-                docMajitel.appendItemValue("Subject", "you should come");
+                docMajitel.appendItemValue("Subject", "You should use your reservation");
                 RichTextItem rti = docMajitel.createRichTextItem("Body");
                 rti.appendText("Please note!\n you shoul come to room: " + currentRoom + ".\n It will be soon canceled");
-                rti.appendText("Second paragraph");
+                rti.appendText("Have a nice day.");
                 
                 docMajitel.send(majitelRezervace);
                 
@@ -823,5 +829,93 @@ public class JavaAgent extends AgentBase {
                 e.printStackTrace();
             }
     }
-  
+    
+    public boolean isPresentWarning(int delkaRez, int timeSinceRezBeggin, int timeForCome, String sYear, String sMonth, String sDay, String sHour){
+    	try{
+            int newTime = timeForCome - YOU_SHOULD_COME;
+            //new stringbuffers to collect all requests together in a single string
+            StringBuffer response = new StringBuffer();  
+            StringBuffer finalBuffer = new StringBuffer();  
+            if(newTime <= timeSinceRezBeggin() && timeForCome > timeSinceRezBeggin()){
+                int j = ((timeForCome/1000)/60);
+                //if reservation starts at 00, reconfigure value to 55 so it can dwindle
+                if(j % 60 == 0){
+                  j = 55;
+                }
+                for(int shift = j; shift>=0; shift = shift - 5){
+                     //to slow down request sending to server
+                     Thread.sleep(600);
+                                                            
+                     String s = "byTimestamp";
+                     //String s1 = "?key=\""+sYear+"-"+sMonth+"-"+sDay +"%20"+ sHour+":"+shift+":"+"00"+"\"";
+                     //String s2 = "?key=\"2016-09-20 2018:56:53\"";
+                     //String s3 = "?key=\"2016-09-20%20"+ "19"+":"+shift+":"+"00"+"\"";
+                     String s4 = "?key=\""+sYear+"."+sMonth+"."+sDay+"%20"+ sHour+":"+shift+":"+"00"+"\"";
+                                                             
+                     String url = "https://da0d2812-066c-46d8-a456-f399214a765e-bluemix.cloudant.com/arduino_yun_db/_design/rooms/_view/" + s+s4;
+                    
+                     URL obj = new URL(url);
+                     HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+                    
+                     // optional default is GET
+                     con.setRequestMethod("GET");
+                    
+                     //add request header
+                     String userCredentials = "onDemand";
+                     String basicAuth = "Basic " + new String(new Base64().encode(userCredentials.getBytes()));
+                     con.setRequestProperty ("Authorization", basicAuth);
+                                                            
+                     System.out.println("Checkie beckie boy");                                   
+                                                        
+                     //int responseCode = con.getResponseCode();
+                     //System.out.println("\nSending 'GET' request to URL : " + url);
+                     //System.out.println("Response Code : " + responseCode);
+                                
+                     BufferedReader in = new BufferedReader(
+                     new InputStreamReader(con.getInputStream()));
+                     String inputLine;
+                                
+                     while ((inputLine = in.readLine()) != null) {
+                       response.append(inputLine);
+                      }
+                     in.close();
+                                
+                     //print result
+                     String finString = response.toString();
+                     finalBuffer.append(finString);
+                }
+                
+                //System.out.println(finalBuffer.toString());   
+                                                 
+                //through regular expressions count number of expressions in the string
+                 //String REGEX = "\"value\":100";
+                String REGEX = "\"motion\":1";
+                String INPUT = response.toString();   
+                                                   
+                Pattern p = Pattern.compile(REGEX);
+                Matcher m = p.matcher(INPUT);   // get a matcher object
+                int count = 0;                              
+                                                  
+                while(m.find()) {
+                     count++;
+                 }
+                                         
+                movementAmount = count;
+                count = 0;
+                
+                //send mail and unbook reservation
+                if(movementAmount >0){
+                    return true;
+                }
+                else{
+                    return false;
+                }
+            }
+        }       
+        
+        catch(Exception e) {
+                e.printStackTrace();
+        }  
+        return false;
+    }
 }
